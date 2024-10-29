@@ -1,0 +1,6 @@
+*.csv
+*.txt
+*.egg-info
+*.xml
+*.iml
+.idea
