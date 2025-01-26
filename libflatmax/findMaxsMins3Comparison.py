@@ -3,7 +3,7 @@
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-# from findMaxsMins3 import find_maxs_mins
+from libflatmax.findMaxsMins3 import find_maxs_mins3
 from oct2py import octave
 
 def generate_test_input(plotting = False, random_data = False):
@@ -33,29 +33,26 @@ def generate_test_input(plotting = False, random_data = False):
     return df
 
 
-def plot_local(signal, min_indexes, mins, max_indexes, maxs, up_breakpoints, down_breakpoints):
-    # Clear the current figure
+def plot_local(signal, oct_min_idx, oct_mins, oct_max_idx, oct_maxs, 
+              oct_up, oct_down, py_min_idx, py_mins, py_max_idx, py_maxs,
+              py_up, py_down):
     plt.clf()
-
-    # Plot the main signal
     plt.plot(signal, label="Signal", color="blue")
-
-    # Plot minimum points as green circles
-    plt.plot(min_indexes, mins, 'go', label="Min Points")
-
-    # Plot up breakpoints as green stars
-    plt.plot(up_breakpoints, [signal[i] for i in up_breakpoints], 'g*', label="Up Breakpoints")
-
-    # Plot maximum points as red circles
-    plt.plot(max_indexes, maxs, 'ro', label="Max Points")
-
-    # Plot down breakpoints as red stars
-    plt.plot(down_breakpoints, [signal[i] for i in down_breakpoints], 'r*', label="Down Breakpoints")
-
-    # Display grid and legend
+    
+    # Octave results
+    plt.plot(oct_min_idx, oct_mins, 'go', label="Octave Min")
+    plt.plot(oct_up, signal[oct_up], 'g*', label="Octave Up")
+    plt.plot(oct_max_idx, oct_maxs, 'ro', label="Octave Max")
+    plt.plot(oct_down, signal[oct_down], 'r*', label="Octave Down")
+    
+    # Python results
+    plt.plot(py_min_idx, py_mins, 'bx', label="Python Min")
+    plt.plot(py_up, signal[py_up], 'b+', label="Python Up")
+    plt.plot(py_max_idx, py_maxs, 'mx', label="Python Max") 
+    plt.plot(py_down, signal[py_down], 'm+', label="Python Down")
+    
     plt.grid(True)
-
-    # Show the plot
+    plt.legend()
     plt.show()
 
 # def save_signal_for_matlab(signal, file_name='signal_for_matlab.txt'):
@@ -65,30 +62,69 @@ def plot_local(signal, min_indexes, mins, max_indexes, maxs, up_breakpoints, dow
 #
 # Example usage:
 df = generate_test_input(plotting = False, random_data = False)
-criterion = 0.001  # Example criterion
-#
-# save_signal_for_matlab(signal, file_name='signal_for_matlab.txt')
-# save_signal_for_matlab(cirterion, file_name='signal_for_matlab_criterion.txt')
-#
-# # Run comparison
-# print(df)
-# comparison_results = compare_results(df['price'], criterion)
-# print(df['close'].to_numpy())
-# comparison_results = compare_results(df['close'].to_numpy(), criterion)
-# print(comparison_results)
+def compare_results(oct_vec, py_vec, name):
+    if len(oct_vec) != len(py_vec):
+        print(f"{name} LENGTH MISMATCH: Octave {len(oct_vec)} vs Python {len(py_vec)}")
+        return False
+    
+    match = np.allclose(oct_vec, py_vec, atol=1e-6, equal_nan=True)
+    if not match:
+        print(f"{name} VALUE MISMATCHES:")
+        for i, (o, p) in enumerate(zip(oct_vec, py_vec)):
+            if not np.isclose(o, p, atol=1e-6):
+                print(f"Index {i}: Octave {o:.6f} vs Python {p:.6f}")
+    return match
+
+def print_compact_table(oct_arr, py_arr, title, fmt="%d"):
+    print(f"\n{title} comparison:")
+    print(f"{'Octave':<15} | {'Python':<15}")
+    print("-"*32)
+    for o, p in zip_longest(oct_arr, py_arr, fillvalue=np.nan):
+        # Handle array elements from Octave
+        o = o[0] if isinstance(o, np.ndarray) else o
+        p = p[0] if isinstance(p, np.ndarray) else p
+        
+        o_str = (fmt % o) if (np.isscalar(o) and not np.isnan(o)) else "N/A"
+        p_str = (fmt % p) if (np.isscalar(p) and not np.isnan(p)) else "N/A"
+        print(f"{o_str:<15} | {p_str:<15}")
+
+criterion = 0.001  # Threshold for finding maxima/minima
 signal = df['close'].to_numpy()
 min_indexes, max_indexes, maxs, mins, up_breakpoints, down_breakpoints = octave.findMaxsMins3(signal, criterion, nout = 6)
-min_indexes=min_indexes-1
-max_indexes=max_indexes-1
-up_breakpoints=np.array(up_breakpoints, dtype=int)-1
-down_breakpoints=np.array(down_breakpoints, dtype=int)-1
+min_indexes = (min_indexes - 1).flatten()
+max_indexes = (max_indexes - 1).flatten()
+up_breakpoints = np.array(up_breakpoints, dtype=int).flatten() - 1
+down_breakpoints = np.array(down_breakpoints, dtype=int).flatten() - 1
 
-# Print or use the outputs as needed
-# print("Min indexes:", min_indexes)
-# print("Max indexes:", max_indexes)
-# print("Max values:", maxs)
-# print("Min values:", mins)
-# print("Up breakpoints:", up_breakpoints)
-# print("Down breakpoints:", down_breakpoints)
+# Run Python implementation
+py_min_idx, py_max_idx, py_maxs, py_mins, py_up, py_down = find_maxs_mins3(signal, criterion)
 
-plot_local(signal, min_indexes, mins, max_indexes, maxs, up_breakpoints, down_breakpoints)
+print("\n=== Results Comparison ===")
+all_match = True
+for name, oct_data, py_data in [
+    ("Min indexes", min_indexes, py_min_idx),
+    ("Max indexes", max_indexes, py_max_idx),
+    ("Mins values", mins, py_mins),
+    ("Maxs values", maxs, py_maxs),
+    ("Up breakpoints", up_breakpoints, py_up),
+    ("Down breakpoints", down_breakpoints, py_down)
+]:
+    print(f"\n{name}:")
+    print("Octave:", np.array_repr(np.array(oct_data)).replace('\n', '')[:70], "...")
+    print("Python:", np.array_repr(np.array(py_data)).replace('\n', '')[:70], "...")
+    all_match &= compare_results(np.array(oct_data), np.array(py_data), name)
+
+print("\n=== Final Result ===")
+print("ALL OUTPUTS MATCH:", "YES" if all_match else "NO")
+
+print("\n=== Compact Comparison Table ===")
+from itertools import zip_longest
+print_compact_table(min_indexes, py_min_idx, "Min Indexes")
+print_compact_table(max_indexes, py_max_idx, "Max Indexes", fmt="%d")
+print_compact_table(up_breakpoints, py_up, "Up Breakpoints", fmt="%d")
+print_compact_table(down_breakpoints, py_down, "Down Breakpoints", fmt="%d")
+
+# Plot comparison
+plot_local(signal, 
+          min_indexes, mins.flatten(), max_indexes, maxs.flatten(), up_breakpoints, down_breakpoints,
+          py_min_idx, py_mins, py_max_idx, py_maxs, py_up, py_down)

@@ -1,5 +1,5 @@
 ```
-conda create -n libflatmax python=3.11
+conda create -n libflatmax
 ```
 
 ```
