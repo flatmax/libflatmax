@@ -6,7 +6,7 @@ from libflatmax.comparison_utils import (
     plot_comparison,
     print_compact_table
 )
-from libflatmax.findMaxsMins3 import find_maxs_mins3
+from libflatmax.findRampUps import find_ramp_ups
 from oct2py import octave
 
 # Load test data
@@ -16,23 +16,24 @@ signal = df['close'].to_numpy()
 
 # Run main comparison
 all_match = run_comparison_test(
-    octave_fn=octave.findMaxsMins3,
-    python_fn=find_maxs_mins3,
+    octave_fn=octave.findRampUps,
+    python_fn=find_ramp_ups,
     signal=signal,
     criterion=criterion,
-    test_name="findMaxsMins3"
+    test_name="findRampUps"
 )
+
 # Inverted signal test
 print("\n=== Running Inverted Signal Test ===")
 inverted_signal = -signal
 
 # Run inverted comparison
 inv_match = run_comparison_test(
-    octave_fn=octave.findMaxsMins3,
-    python_fn=find_maxs_mins3,
+    octave_fn=octave.findRampUps,
+    python_fn=find_ramp_ups,
     signal=inverted_signal,
     criterion=criterion,
-    test_name="Inverted Signal findMaxsMins3"
+    test_name="Inverted Signal findRampUps"
 )
 
 print("\n=== All Tests Summary ===")
