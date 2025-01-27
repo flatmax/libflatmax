@@ -1,4 +1,4 @@
-function [minIndexes, maxIndexes, maxs, mins, upBreakPoints, downBreakPoints] = findRampUps(signal, criterion)
+function [minIndexes, maxIndexes, maxs, mins, upBreakPoints, downBreakPoints] = findRampUpsDowns(signal, criterion)
 % Find ramp-ups by analyzing signal with positive offset
 %
 % Inputs:
@@ -15,7 +15,7 @@ function [minIndexes, maxIndexes, maxs, mins, upBreakPoints, downBreakPoints] = 
 
 % Input validation
 if nargin < 2
-    error('findRampUps requires both signal and criterion inputs');
+    error('findRampUpsDowns requires both signal and criterion inputs');
 end
 if ~isnumeric(signal) || ~isvector(signal)
     error('signal must be a numeric vector');
